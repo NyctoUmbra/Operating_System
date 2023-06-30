@@ -1,0 +1,100 @@
+#include <string>
+#include <vector>
+#include <fstream>
+#include <iostream>
+using namespace std;
+
+class Table:Public FileSys
+{
+	public:
+		Table(string diskname, int numberofblocks, int blocksize, string flatfile, string indexfile);
+		int Build_Table(string input_file);
+		int Search(string value);
+	private:
+		string flatfile;
+		string indexfile;
+		int numberofrecords;
+		FileSys filesystem;
+		int IndexSearch(string value);
+};
+
+Table::Table(string diskname, int numberofblocks, int blocksize, string flatfile, string indexfile):Filesys(diskname, numberofblocks, blocksize)
+{
+	this -> flatfile = flatfile.substr(0, 5);
+	this -> indexfile = indexfile.substr(0, 5);
+}
+
+int Table::Build_Table(string input_file)
+{
+	ifstream infile;
+	infile.open(input_file.c_str());
+	newfile(flatfile);
+	newfile(indexfile);
+	ostringstream ostream;
+	
+	string record, key;
+	getline (infile, record);
+	
+	while(infile.good())
+	{
+		key = record.substr(0, 5);
+		vector<string>blocks = block(record, getblocksize());
+		int b = addblock(flatfile, blocks[0]);
+		ostream << key << " " << b << " ";
+		getline(infile, record);
+	}
+	ostream << "kangaroo" << " " << 0 << " ";
+	string buffer = ostream.str();
+	vector<string>blocks2 = block(buffer, getblocksize());
+	
+	for (int i = 0; i < blocks2.size(); i++)
+	{
+		addblock(indexfile, blocks2[i]);
+	}
+	return 1;
+}
+
+int Table::indexsearch(string key)
+{
+	string buffer1, buffer2;	//next is process of getting block
+	int b = getfirstblock(indexfile);
+	//error checking is in order
+	while (b != 0)
+	{
+		readblock(indexfile, b, buffer);
+		buffer2 += buffer;
+		b = nextblock(indexfile, b);
+	}
+	istringstream istream;
+	istream.str(buffer2);
+	string ikey;
+	int iblock;
+	istream >> ikey >> iblock;
+	while(ikey = "kangaroo")
+	{
+		if(ikey == key)
+		{
+			return iblock;
+		}
+		istream >> ikey >> iblock;
+	}
+	return -1;
+}
+//end of index search
+
+void Table::search(string key)
+{
+	int b = indexsearch(key);
+	if(b == -1)
+	{
+		cout << "record not found";
+	return;
+	}
+	else
+	{
+		string buffer;
+		readblock(flatfile, b, buffer);
+		cout << buffer;
+	}
+	return;
+}
